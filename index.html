@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw Usage Tracker</title>
+
+<!-- Google Fonts - Different for each variant -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500;600&family=Space+Mono:wght@400;700&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500;6..72,600;6..72,700&family=Crimson+Pro:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+  /* ============================================ */
+  /* BASE RESET & SHARED STYLES                   */
+  /* ============================================ */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; padding: 0; overflow-x: hidden; min-height: 100vh; }
+  
+  /* Animations */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes drawLine {
+    from { stroke-dashoffset: 2000; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes pulseGlow {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.1s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.2s; }
+  .stagger-5 { animation-delay: 0.25s; }
+  .stagger-6 { animation-delay: 0.3s; }
+  .stagger-7 { animation-delay: 0.35s; }
+  .stagger-8 { animation-delay: 0.4s; }
+  
+  .animate-fade-up {
+    animation: fadeInUp 0.5s ease-out both;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out both;
+  }
+  .animate-slide-right {
+    animation: slideInRight 0.5s ease-out both;
+  }
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out both;
+  }
+  
+  /* SVG chart line animation */
+  .chart-line-animated {
+    stroke-dasharray: 2000;
+    stroke-dashoffset: 2000;
+    animation: drawLine 1.5s ease-out forwards;
+    animation-delay: 0.3s;
+  }
+  .chart-area-animated {
+    opacity: 0;
+    animation: fadeIn 0.8s ease-out forwards;
+    animation-delay: 0.8s;
+  }
+  
+  /* Tooltip styles */
+  .chart-tooltip {
+    position: absolute;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
+  }
+  .chart-tooltip.visible {
+    opacity: 1;
+  }
+  
+  /* Keyboard shortcut overlay */
+  .shortcut-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .shortcut-overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .shortcut-overlay .shortcut-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px 40px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+  }
+  .shortcut-overlay.visible .shortcut-card {
+    transform: scale(1);
+  }
+  .shortcut-key {
+    display: inline-block;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    min-width: 28px;
+    text-align: center;
+  }
+  
+  /* Session expand animation */
+  .session-details {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+  }
+  .session-details.expanded {
+    max-height: 300px;
+    opacity: 1;
+  }
+  
+  /* Mode badge */
+  .mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  .mode-badge.demo {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .mode-badge.live {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .mode-badge .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: pulseGlow 2s infinite;
+  }
+  .mode-badge.demo .pulse-dot { background: #3b82f6; }
+  .mode-badge.live .pulse-dot { background: #22c55e; }
+  
+  /* Variant navigation */
+  .variant-nav {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+  }
+  .variant-nav button {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+  }
+  
+  /* Hide all variants by default */
+  .variant { display: none; min-height: 100vh; }
+  .variant.active { display: block; }
+  
+  /* ============================================ */
+  /* VARIANT 1 - SOFT DARK                        */
+  /* ============================================ */
+  :root {
+    --v1-bg: #1a1d23;
+    --v1-surface: #22262e;
+    --v1-surface2: #2a2f38;
+    --v1-border: #333842;
+    --v1-text: #e2e8f0;
+    --v1-text-dim: #94a3b8;
+    --v1-text-muted: #64748b;
+    --v1-accent: #818cf8;
+    --v1-accent2: #a78bfa;
+    --v1-accent3: #c4b5fd;
+    --v1-success: #6ee7b7;
+    --v1-warning: #fbbf24;
+    
+    --v2-bg: #faf7f2;
+    --v2-surface: #ffffff;
+    --v2-border: #e8ddd0;
+    --v2-text: #3d2e1f;
+    --v2-text-dim: #7a6651;
+    --v2-accent: #c2703e;
+    --v2-accent2: #a0522d;
+    --v2-accent3: #d4956a;
+    
+    --v3-bg: #ffffff;
+    --v3-surface: #f8fafc;
+    --v3-border: #e2e8f0;
+    --v3-text: #0f172a;
+    --v3-text-dim: #64748b;
+    --v3-accent: #0ea5e9;
+    --v3-accent2: #6366f1;
+    
+    --v4-bg: #f5f0e8;
+    --v4-surface: #faf6ef;
+    --v4-border: #d4cabb;
+    --v4-text: #1a1a1a;
+    --v4-text-dim: #6b6054;
+    --v4-accent: #2d2117;
+    
+    --v5-bg-start: #1e1b4b;
+    --v5-bg-mid: #172554;
+    --v5-bg-end: #134e4a;
+    --v5-surface: rgba(255,255,255,0.08);
+    --v5-border: rgba(255,255,255,0.12);
+    --v5-text: #f1f5f9;
+    --v5-text-dim: #94a3b8;
+    --v5-accent: #a78bfa;
+    --v5-accent2: #67e8f9;
+    --v5-glow: rgba(167,139,250,0.3);
+  }
+  
+  /* V1 Specific */
+  #variant-1 {
+    background: var(--v1-bg);
+    color: var(--v1-text);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  #variant-1 .card {
+    background: var(--v1-surface);
+    border: 1px solid var(--v1-border);
+    border-radius: 16px;
+    padding: 24px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  #variant-1 .card:hover {
+    border-color: var(--v1-accent);
+    box-shadow: 0 0 20px rgba(129,140,248,0.08);
+  }
+  
+  /* V2 Specific */
+  #variant-2 {
+    background: var(--v2-bg);
+    color: var(--v2-text);
+    font-family: 'DM Sans', sans-serif;
+  }
+  #variant-2 h1, #variant-2 h2, #variant-2 h3 {
+    font-family: 'Newsreader', serif;
+  }
+  #variant-2 .card {
+    background: var(--v2-surface);
+    border: 1px solid var(--v2-border);
+    border-radius: 8px;
+    padding: 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  
+  /* V3 Specific */
+  #variant-3 {
+    background: var(--v3-bg);
+    color: var(--v3-text);
+    font-family: 'Sora', sans-serif;
+  }
+  #variant-3 .mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  #variant-3 .card {
+    background: var(--v3-surface);
+    border: 1px solid var(--v3-border);
+    border-radius: 4px;
+    padding: 24px;
+  }
+  
+  /* V4 Specific */
+  #variant-4 {
+    background: var(--v4-bg);
+    color: var(--v4-text);
+    font-family: 'Source Serif 4', serif;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+  #variant-4 .card {
+    background: var(--v4-surface);
+    border: 1px solid var(--v4-border);
+    border-radius: 2px;
+    padding: 24px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.05);
+  }
+  
+  /* V5 Specific */
+  #variant-5 {
+    background: linear-gradient(135deg, var(--v5-bg-start), var(--v5-bg-mid), var(--v5-bg-end));
+    color: var(--v5-text);
+    font-family: 'Manrope', sans-serif;
+    min-height: 100vh;
+  }
+  #variant-5 .card {
+    background: var(--v5-surface);
+    border: 1px solid var(--v5-border);
+    border-radius: 20px;
+    padding: 24px;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  #variant-5 .card:hover {
+    border-color: rgba(167,139,250,0.3);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 20px var(--v5-glow);
+  }
+  #variant-5 .glow-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--v5-accent), var(--v5-accent2), transparent);
+    opacity: 0.5;
+  }
+
+  /* Paper texture for V4 */
+  #variant-4::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    z-index: 0;
+  }
+  #variant-4 > * { position: relative; z-index: 1; }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #718096; }
+  
+  /* Sort indicators */
+  .sort-btn { cursor: pointer; user-select: none; }
+  .sort-btn:hover { opacity: 0.8; }
+  .sort-indicator { font-size: 10px; margin-left: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Keyboard Shortcut Overlay -->
+<div id="shortcut-overlay" class="shortcut-overlay">
+  <div class="shortcut-card">
+    <h3 style="font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; margin:0 0 20px 0; color:#1e293b;">Keyboard Shortcuts</h3>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="color:#475569; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px;">Switch to variant</span>
+        <div style="display:flex; gap:4px;">
+          <span class="shortcut-key">1</span>
+          <span class="shortcut-key">2</span>
+          <span class="shortcut-key">3</span>
+          <span class="shortcut-key">4</span>
+          <span class="shortcut-key">5</span>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="color:#475569; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px;">Toggle Demo / Live mode</span>
+        <span class="shortcut-key">D</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="color:#475569; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px;">Show shortcuts</span>
+        <span class="shortcut-key">?</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="color:#475569; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px;">Close overlay</span>
+        <span class="shortcut-key">Esc</span>
+      </div>
+    </div>
+    <p style="margin:20px 0 0 0; font-size:12px; color:#94a3b8; font-family:'Plus Jakarta Sans',sans-serif;">Press any key to close</p>
+  </div>
+</div>
+
+<!-- Variant Navigation -->
+<div class="variant-nav" id="variant-nav" style="background:rgba(30,30,40,0.8);">
+  <button onclick="switchVariant(1)" data-v="1" style="background:#818cf8; color:#fff;">1</button>
+  <button onclick="switchVariant(2)" data-v="2" style="background:transparent; color:#94a3b8;">2</button>
+  <button onclick="switchVariant(3)" data-v="3" style="background:transparent; color:#94a3b8;">3</button>
+  <button onclick="switchVariant(4)" data-v="4" style="background:transparent; color:#94a3b8;">4</button>
+  <button onclick="switchVariant(5)" data-v="5" style="background:transparent; color:#94a3b8;">5</button>
+</div>
+
+<!-- ============================================ -->
+<!-- VARIANT 1 - SOFT DARK                        -->
+<!-- ============================================ -->
+<div id="variant-1" class="variant active">
+  <div style="max-width:1400px; margin:0 auto; padding:32px 40px;">
+    <!-- Header -->
+    <div class="animate-fade-up" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
+      <div>
+        <h1 style="font-size:28px; font-weight:700; margin:0; color:var(--v1-text); letter-spacing:-0.5px;">Usage Tracker</h1>
+        <p style="margin:4px 0 0 0; font-size:14px; color:var(--v1-text-muted);">OpenClaw token usage &amp; cost analytics</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div id="v1-mode-badge" class="mode-badge demo" onclick="toggleMode()">
+          <span class="pulse-dot"></span>
+          <span class="mode-label">Demo Mode</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div id="v1-summary" style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px;"></div>
+    
+    <!-- Charts Row -->
+    <div style="display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:28px;">
+      <!-- Daily Cost Trend -->
+      <div class="card animate-fade-up stagger-5">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 style="font-size:15px; font-weight:600; margin:0; color:var(--v1-text);">Daily Cost Trend</h3>
+          <span style="font-size:12px; color:var(--v1-text-muted);">Last 14 days</span>
+        </div>
+        <div id="v1-daily-chart" style="position:relative; height:240px;"></div>
+      </div>
+      
+      <!-- Model Breakdown -->
+      <div class="card animate-fade-up stagger-6">
+        <h3 style="font-size:15px; font-weight:600; margin:0 0 20px 0; color:var(--v1-text);">Cost by Model</h3>
+        <div id="v1-model-chart" style="position:relative;"></div>
+      </div>
+    </div>
+    
+    <!-- Provider Summary -->
+    <div class="card animate-fade-up stagger-7" style="margin-bottom:28px;">
+      <h3 style="font-size:15px; font-weight:600; margin:0 0 16px 0; color:var(--v1-text);">Provider Summary</h3>
+      <div id="v1-providers" style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px;"></div>
+    </div>
+    
+    <!-- Session Ranking -->
+    <div class="card animate-fade-up stagger-8">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:15px; font-weight:600; margin:0; color:var(--v1-text);">Session Cost Ranking</h3>
+        <div style="display:flex; gap:8px;">
+          <button class="sort-btn" onclick="sortSessions('v1','cost')" style="background:var(--v1-surface2); border:1px solid var(--v1-border); color:var(--v1-text-dim); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;">Cost ↓</button>
+          <button class="sort-btn" onclick="sortSessions('v1','tokens')" style="background:var(--v1-surface2); border:1px solid var(--v1-border); color:var(--v1-text-dim); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;">Tokens ↓</button>
+          <button class="sort-btn" onclick="sortSessions('v1','date')" style="background:var(--v1-surface2); border:1px solid var(--v1-border); color:var(--v1-text-dim); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;">Date ↓</button>
+        </div>
+      </div>
+      <div id="v1-sessions" style="max-height:400px; overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- VARIANT 2 - WARM NEUTRAL                     -->
+<!-- ============================================ -->
+<div id="variant-2" class="variant">
+  <div style="max-width:1300px; margin:0 auto; padding:48px 56px;">
+    <!-- Header -->
+    <div class="animate-fade-up" style="margin-bottom:48px; border-bottom:1px solid var(--v2-border); padding-bottom:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+        <div>
+          <p style="font-family:'DM Sans',sans-serif; font-size:12px; font-weight:500; text-transform:uppercase; letter-spacing:2px; color:var(--v2-accent); margin:0 0 8px 0;">OpenClaw Analytics</p>
+          <h1 style="font-family:'Newsreader',serif; font-size:42px; font-weight:400; margin:0; color:var(--v2-text); letter-spacing:-1px;">Usage Tracker</h1>
+        </div>
+        <div id="v2-mode-badge" class="mode-badge demo" onclick="toggleMode()">
+          <span class="pulse-dot"></span>
+          <span class="mode-label">Demo Mode</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div id="v2-summary" style="display:grid; grid-template-columns:repeat(4,1fr); gap:24px; margin-bottom:48px;"></div>
+    
+    <!-- Daily Cost Chart -->
+    <div class="card animate-fade-up stagger-5" style="margin-bottom:36px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h2 style="font-family:'Newsreader',serif; font-size:22px; font-weight:500; margin:0; color:var(--v2-text);">Daily Expenditure</h2>
+        <span style="font-size:13px; color:var(--v2-text-dim); font-style:italic;">14-day overview</span>
+      </div>
+      <div id="v2-daily-chart" style="position:relative; height:260px;"></div>
+    </div>
+    
+    <!-- Two column: Model + Provider -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:36px;">
+      <div class="card animate-fade-up stagger-6">
+        <h2 style="font-family:'Newsreader',serif; font-size:22px; font-weight:500; margin:0 0 24px 0; color:var(--v2-text);">Model Allocation</h2>
+        <div id="v2-model-chart"></div>
+      </div>
+      <div class="card animate-fade-up stagger-7">
+        <h2 style="font-family:'Newsreader',serif; font-size:22px; font-weight:500; margin:0 0 20px 0; color:var(--v2-text);">By Provider</h2>
+        <div id="v2-providers"></div>
+      </div>
+    </div>
+    
+    <!-- Sessions -->
+    <div class="card animate-fade-up stagger-8">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="font-family:'Newsreader',serif; font-size:22px; font-weight:500; margin:0; color:var(--v2-text);">Sessions</h2>
+        <div style="display:flex; gap:8px;">
+          <button class="sort-btn" onclick="sortSessions('v2','cost')" style="background:transparent; border:1px solid var(--v2-border); color:var(--v2-text-dim); border-radius:4px; padding:4px 12px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer;">Cost</button>
+          <button class="sort-btn" onclick="sortSessions('v2','tokens')" style="background:transparent; border:1px solid var(--v2-border); color:var(--v2-text-dim); border-radius:4px; padding:4px 12px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer;">Tokens</button>
+          <button class="sort-btn" onclick="sortSessions('v2','date')" style="background:transparent; border:1px solid var(--v2-border); color:var(--v2-text-dim); border-radius:4px; padding:4px 12px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer;">Date</button>
+        </div>
+      </div>
+      <div id="v2-sessions" style="max-height:420px; overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- VARIANT 3 - COOL MINIMAL                     -->
+<!-- ============================================ -->
+<div id="variant-3" class="variant">
+  <div style="max-width:1360px; margin:0 auto; padding:40px 48px;">
+    <!-- Header -->
+    <div class="animate-fade-up" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:48px;">
+      <div style="display:flex; align-items:baseline; gap:16px;">
+        <h1 style="font-size:20px; font-weight:600; margin:0; color:var(--v3-text); letter-spacing:-0.3px;">USAGE TRACKER</h1>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--v3-text-dim); letter-spacing:1px;">OPENCLAW</span>
+      </div>
+      <div id="v3-mode-badge" class="mode-badge demo" onclick="toggleMode()">
+        <span class="pulse-dot"></span>
+        <span class="mode-label">Demo Mode</span>
+      </div>
+    </div>
+    
+    <!-- Summary -->
+    <div id="v3-summary" style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--v3-border); margin-bottom:48px; border:1px solid var(--v3-border);"></div>
+    
+    <!-- Chart + Model side by side -->
+    <div style="display:grid; grid-template-columns:3fr 1fr; gap:48px; margin-bottom:48px;">
+      <div class="animate-fade-up stagger-5">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--v3-text-dim); margin:0;">Daily Cost</h3>
+          <span class="mono" style="font-size:11px; color:var(--v3-text-dim);">14D</span>
+        </div>
+        <div style="border:1px solid var(--v3-border); border-radius:4px; padding:24px;">
+          <div id="v3-daily-chart" style="position:relative; height:220px;"></div>
+        </div>
+      </div>
+      <div class="animate-fade-up stagger-6">
+        <h3 style="font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--v3-text-dim); margin:0 0 16px 0;">Models</h3>
+        <div id="v3-model-chart"></div>
+      </div>
+    </div>
+    
+    <!-- Providers -->
+    <div class="animate-fade-up stagger-7" style="margin-bottom:48px;">
+      <h3 style="font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--v3-text-dim); margin:0 0 16px 0;">Providers</h3>
+      <div id="v3-providers" style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--v3-border); border:1px solid var(--v3-border);"></div>
+    </div>
+    
+    <!-- Sessions -->
+    <div class="animate-fade-up stagger-8">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--v3-text-dim); margin:0;">Sessions</h3>
+        <div style="display:flex; gap:4px;">
+          <button class="sort-btn" onclick="sortSessions('v3','cost')" style="background:transparent; border:1px solid var(--v3-border); color:var(--v3-text-dim); border-radius:2px; padding:3px 8px; font-size:10px; font-family:'JetBrains Mono',monospace; letter-spacing:0.5px; cursor:pointer;">COST</button>
+          <button class="sort-btn" onclick="sortSessions('v3','tokens')" style="background:transparent; border:1px solid var(--v3-border); color:var(--v3-text-dim); border-radius:2px; padding:3px 8px; font-size:10px; font-family:'JetBrains Mono',monospace; letter-spacing:0.5px; cursor:pointer;">TOKENS</button>
+          <button class="sort-btn" onclick="sortSessions('v3','date')" style="background:transparent; border:1px solid var(--v3-border); color:var(--v3-text-dim); border-radius:2px; padding:3px 8px; font-size:10px; font-family:'JetBrains Mono',monospace; letter-spacing:0.5px; cursor:pointer;">DATE</button>
+        </div>
+      </div>
+      <div id="v3-sessions" style="border:1px solid var(--v3-border); max-height:400px; overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- VARIANT 4 - PAPER / LIGHT                    -->
+<!-- ============================================ -->
+<div id="variant-4" class="variant">
+  <div style="max-width:1280px; margin:0 auto; padding:48px 56px;">
+    <!-- Header -->
+    <div class="animate-fade-up" style="margin-bottom:48px; text-align:center;">
+      <h1 style="font-family:'Playfair Display',serif; font-size:36px; font-weight:400; margin:0; color:var(--v4-text); letter-spacing:1px;">Usage Tracker</h1>
+      <div style="width:60px; height:1px; background:var(--v4-text); margin:16px auto; opacity:0.3;"></div>
+      <p style="font-size:14px; color:var(--v4-text-dim); margin:0; font-style:italic;">Token consumption &amp; cost ledger</p>
+      <div style="margin-top:12px;">
+        <span id="v4-mode-badge" class="mode-badge demo" onclick="toggleMode()" style="background:#e8e0d4; color:#5a4d3e;">
+          <span class="pulse-dot" style="background:#8b7355;"></span>
+          <span class="mode-label">Demo Mode</span>
+        </span>
+      </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div id="v4-summary" style="display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-bottom:48px;"></div>
+    
+    <!-- Daily chart -->
+    <div class="card animate-fade-up stagger-5" style="margin-bottom:36px;">
+      <h3 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:400; margin:0 0 24px 0; color:var(--v4-text);">Daily Expenditure Record</h3>
+      <div id="v4-daily-chart" style="position:relative; height:240px;"></div>
+    </div>
+    
+    <!-- Model + Provider -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:36px;">
+      <div class="card animate-fade-up stagger-6">
+        <h3 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:400; margin:0 0 24px 0; color:var(--v4-text);">Model Ledger</h3>
+        <div id="v4-model-chart"></div>
+      </div>
+      <div class="card animate-fade-up stagger-7">
+        <h3 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:400; margin:0 0 20px 0; color:var(--v4-text);">Provider Accounts</h3>
+        <div id="v4-providers"></div>
+      </div>
+    </div>
+    
+    <!-- Sessions -->
+    <div class="card animate-fade-up stagger-8">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="font-family:'Playfair Display',serif; font-size:20px; font-weight:400; margin:0; color:var(--v4-text);">Session Register</h3>
+        <div style="display:flex; gap:6px;">
+          <button class="sort-btn" onclick="sortSessions('v4','cost')" style="background:transparent; border:1px solid var(--v4-border); color:var(--v4-text-dim); border-radius:2px; padding:4px 10px; font-size:12px; font-family:'Source Serif 4',serif; cursor:pointer;">Cost</button>
+          <button class="sort-btn" onclick="sortSessions('v4','tokens')" style="background:transparent; border:1px solid var(--v4-border); color:var(--v4-text-dim); border-radius:2px; padding:4px 10px; font-size:12px; font-family:'Source Serif 4',serif; cursor:pointer;">Tokens</button>
+          <button class="sort-btn" onclick="sortSessions('v4','date')" style="background:transparent; border:1px solid var(--v4-border); color:var(--v4-text-dim); border-radius:2px; padding:4px 10px; font-size:12px; font-family:'Source Serif 4',serif; cursor:pointer;">Date</button>
+        </div>
+      </div>
+      <div id="v4-sessions" style="max-height:400px; overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- VARIANT 5 - FROSTED GLASS                    -->
+<!-- ============================================ -->
+<div id="variant-5" class="variant">
+  <!-- Mesh gradient background blobs -->
+  <div style="position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;">
+    <div style="position:absolute; top:-20%; left:-10%; width:60%; height:60%; background:radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%); border-radius:50%;"></div>
+    <div style="position:absolute; bottom:-20%; right:-10%; width:50%; height:50%; background:radial-gradient(circle, rgba(20,184,166,0.12) 0%, transparent 70%); border-radius:50%;"></div>
+    <div style="position:absolute; top:30%; right:20%; width:40%; height:40%; background:radial-gradient(circle, rgba(167,139,250,0.1) 0%, transparent 70%); border-radius:50%;"></div>
+  </div>
+  
+  <div style="max-width:1400px; margin:0 auto; padding:36px 44px; position:relative; z-index:1;">
+    <!-- Header -->
+    <div class="animate-fade-up" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <div>
+        <h1 style="font-size:30px; font-weight:800; margin:0; background:linear-gradient(135deg, #e0e7ff, #a78bfa, #67e8f9); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-0.5px;">Usage Tracker</h1>
+        <p style="margin:4px 0 0 0; font-size:13px; color:var(--v5-text-dim);">OpenClaw analytics dashboard</p>
+      </div>
+      <div id="v5-mode-badge" class="mode-badge demo" onclick="toggleMode()" style="background:rgba(99,102,241,0.2); color:#c4b5fd; border:1px solid rgba(167,139,250,0.3);">
+        <span class="pulse-dot" style="background:#a78bfa;"></span>
+        <span class="mode-label">Demo Mode</span>
+      </div>
+    </div>
+    <div class="glow-line animate-fade-in" style="margin-bottom:32px;"></div>
+    
+    <!-- Summary Cards -->
+    <div id="v5-summary" style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px;"></div>
+    
+    <!-- Charts -->
+    <div style="display:grid; grid-template-columns:5fr 3fr; gap:16px; margin-bottom:28px;">
+      <div class="card animate-fade-up stagger-5">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 style="font-size:15px; font-weight:700; margin:0; color:var(--v5-text);">Daily Cost Trend</h3>
+          <span style="font-size:12px; color:var(--v5-text-dim);">14 days</span>
+        </div>
+        <div id="v5-daily-chart" style="position:relative; height:240px;"></div>
+      </div>
+      <div class="card animate-fade-up stagger-6">
+        <h3 style="font-size:15px; font-weight:700; margin:0 0 20px 0; color:var(--v5-text);">Model Distribution</h3>
+        <div id="v5-model-chart"></div>
+      </div>
+    </div>
+    
+    <!-- Provider + Sessions -->
+    <div class="card animate-fade-up stagger-7" style="margin-bottom:28px;">
+      <h3 style="font-size:15px; font-weight:700; margin:0 0 16px 0; color:var(--v5-text);">Providers</h3>
+      <div id="v5-providers" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;"></div>
+    </div>
+    
+    <div class="card animate-fade-up stagger-8">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:15px; font-weight:700; margin:0; color:var(--v5-text);">Sessions</h3>
+        <div style="display:flex; gap:6px;">
+          <button class="sort-btn" onclick="sortSessions('v5','cost')" style="background:rgba(255,255,255,0.06); border:1px solid var(--v5-border); color:var(--v5-text-dim); border-radius:8px; padding:4px 10px; font-size:12px; cursor:pointer;">Cost ↓</button>
+          <button class="sort-btn" onclick="sortSessions('v5','tokens')" style="background:rgba(255,255,255,0.06); border:1px solid var(--v5-border); color:var(--v5-text-dim); border-radius:8px; padding:4px 10px; font-size:12px; cursor:pointer;">Tokens ↓</button>
+          <button class="sort-btn" onclick="sortSessions('v5','date')" style="background:rgba(255,255,255,0.06); border:1px solid var(--v5-border); color:var(--v5-text-dim); border-radius:8px; padding:4px 10px; font-size:12px; cursor:pointer;">Date ↓</button>
+        </div>
+      </div>
+      <div id="v5-sessions" style="max-height:400px; overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// MOCK DATA GENERATION
+// ============================================
+
+function generateMockData() {
+  const now = new Date();
+  const models = [
+    { name: 'claude-opus-4-6', provider: 'anthropic', inputCostPer1k: 0.015, outputCostPer1k: 0.075, minTokens: 50000, maxTokens: 200000, weight: 40 },
+    { name: 'claude-haiku-4-5', provider: 'anthropic', inputCostPer1k: 0.001, outputCostPer1k: 0.005, minTokens: 10000, maxTokens: 50000, weight: 25 },
+    { name: 'gpt-5.2', provider: 'openai', inputCostPer1k: 0.003, outputCostPer1k: 0.015, minTokens: 30000, maxTokens: 80000, weight: 15 },
+    { name: 'kimi-k2.5', provider: 'moonshot', inputCostPer1k: 0, outputCostPer1k: 0, minTokens: 20000, maxTokens: 60000, weight: 10 },
+    { name: 'qwen2.5-coder', provider: 'ollama', inputCostPer1k: 0, outputCostPer1k: 0, minTokens: 5000, maxTokens: 30000, weight: 10 },
+  ];
+  
+  const labels = ['pipeline-build', 'code-review', 'heartbeat', 'debug-session', 'refactor', 'feature-add', 'docs-update', 'testing', 'architecture', 'bug-fix', 'deployment', null, null, null, null, null];
+  
+  const sessions = [];
+  const dailyData = {};
+  
+  // Generate 14 days
+  for (let d = 13; d >= 0; d--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - d);
+    const dateStr = date.toISOString().split('T')[0];
+    const dayOfWeek = date.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    // Fewer sessions on weekends
+    const numSessions = isWeekend ? Math.floor(Math.random() * 2) + 1 : Math.floor(Math.random() * 3) + 2;
+    
+    dailyData[dateStr] = { cost: 0, tokens: 0, sessions: 0 };
+    
+    for (let s = 0; s < numSessions; s++) {
+      // Weighted random model selection
+      const totalWeight = models.reduce((a, m) => a + m.weight, 0);
+      let r = Math.random() * totalWeight;
+      let selectedModel = models[0];
+      for (const m of models) {
+        r -= m.weight;
+        if (r <= 0) { selectedModel = m; break; }
+      }
+      
+      const totalTokens = Math.floor(Math.random() * (selectedModel.maxTokens - selectedModel.minTokens) + selectedModel.minTokens);
+      const inputRatio = 0.6 + Math.random() * 0.2; // 60-80% input
+      const inputTokens = Math.floor(totalTokens * inputRatio);
+      const outputTokens = totalTokens - inputTokens;
+      const cacheRead = Math.floor(inputTokens * Math.random() * 0.3);
+      const cacheWrite = Math.floor(inputTokens * Math.random() * 0.1);
+      
+      const inputCost = (inputTokens / 1000) * selectedModel.inputCostPer1k;
+      const outputCost = (outputTokens / 1000) * selectedModel.outputCostPer1k;
+      const totalCost = inputCost + outputCost;
+      
+      const sessionId = crypto.randomUUID ? crypto.randomUUID() : 
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+          const r = Math.random() * 16 | 0;
+          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+      
+      const hour = Math.floor(Math.random() * 14) + 8; // 8am - 10pm
+      const minute = Math.floor(Math.random() * 60);
+      const ts = new Date(date);
+      ts.setHours(hour, minute, 0, 0);
+      
+      const label = labels[Math.floor(Math.random() * labels.length)];
+      
+      const session = {
+        id: sessionId,
+        shortId: sessionId.slice(0, 8),
+        timestamp: ts.toISOString(),
+        date: dateStr,
+        label: label,
+        model: selectedModel.name,
+        provider: selectedModel.provider,
+        usage: {
+          input: inputTokens,
+          output: outputTokens,
+          cacheRead: cacheRead,
+          cacheWrite: cacheWrite,
+          totalTokens: totalTokens,
+          cost: {
+            input: inputCost,
+            output: outputCost,
+            cacheRead: 0,
+            cacheWrite: 0,
+            total: totalCost
+          }
+        }
+      };
+      
+      sessions.push(session);
+      dailyData[dateStr].cost += totalCost;
+      dailyData[dateStr].tokens += totalTokens;
+      dailyData[dateStr].sessions += 1;
+    }
+  }
+  
+  // Sort sessions by date descending
+  sessions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  // Compute aggregates
+  const totalTokens = sessions.reduce((a, s) => a + s.usage.totalTokens, 0);
+  const totalCost = sessions.reduce((a, s) => a + s.usage.cost.total, 0);
+  const activeModels = [...new Set(sessions.map(s => s.model))];
+  
+  // This week vs last week
+  const today = new Date(now);
+  const thisWeekStart = new Date(today);
+  thisWeekStart.setDate(today.getDate() - today.getDay());
+  thisWeekStart.setHours(0,0,0,0);
+  const lastWeekStart = new Date(thisWeekStart);
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+  
+  let thisWeekCost = 0, lastWeekCost = 0, thisWeekTokens = 0, lastWeekTokens = 0;
+  let thisWeekSessions = 0, lastWeekSessions = 0;
+  
+  sessions.forEach(s => {
+    const sd = new Date(s.timestamp);
+    if (sd >= thisWeekStart) {
+      thisWeekCost += s.usage.cost.total;
+      thisWeekTokens += s.usage.totalTokens;
+      thisWeekSessions++;
+    } else if (sd >= lastWeekStart && sd < thisWeekStart) {
+      lastWeekCost += s.usage.cost.total;
+      lastWeekTokens += s.usage.totalTokens;
+      lastWeekSessions++;
+    }
+  });
+  
+  const costChange = lastWeekCost > 0 ? ((thisWeekCost - lastWeekCost) / lastWeekCost * 100) : 0;
+  const tokenChange = lastWeekTokens > 0 ? ((thisWeekTokens - lastWeekTokens) / lastWeekTokens * 100) : 0;
+  const sessionChange = lastWeekSessions > 0 ? ((thisWeekSessions - lastWeekSessions) / lastWeekSessions * 100) : 0;
+  
+  // Model breakdown
+  const modelStats = {};
+  sessions.forEach(s => {
+    if (!modelStats[s.model]) {
+      modelStats[s.model] = { model: s.model, provider: s.provider, tokens: 0, cost: 0, sessions: 0 };
+    }
+    modelStats[s.model].tokens += s.usage.totalTokens;
+    modelStats[s.model].cost += s.usage.cost.total;
+    modelStats[s.model].sessions++;
+  });
+  
+  // Provider breakdown
+  const providerStats = {};
+  sessions.forEach(s => {
+    if (!providerStats[s.provider]) {
+      providerStats[s.provider] = { provider: s.provider, tokens: 0, cost: 0, sessions: 0, models: new Set() };
+    }
+    providerStats[s.provider].tokens += s.usage.totalTokens;
+    providerStats[s.provider].cost += s.usage.cost.total;
+    providerStats[s.provider].sessions++;
+    providerStats[s.provider].models.add(s.model);
+  });
+  
+  // Convert daily data to sorted array
+  const dailyArray = Object.entries(dailyData)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, data]) => ({ date, ...data }));
+  
+  return {
+    sessions,
+    dailyData: dailyArray,
+    totalTokens,
+    totalCost,
+    totalSessions: sessions.length,
+    activeModels,
+    modelStats: Object.values(modelStats).sort((a, b) => b.cost - a.cost),
+    providerStats: Object.values(providerStats).map(p => ({ ...p, models: [...p.models] })).sort((a, b) => b.cost - a.cost),
+    weekOverWeek: {
+      costChange,
+      tokenChange,
+      sessionChange,
+      thisWeekCost,
+      lastWeekCost,
+      thisWeekTokens,
+      lastWeekTokens,
+      thisWeekSessions,
+      lastWeekSessions
+    }
+  };
+}
+
+// ============================================
+// STATE
+// ============================================
+let currentVariant = parseInt(localStorage.getItem('ut-variant') || '1');
+let isLiveMode = localStorage.getItem('ut-mode') !== 'demo';
+let mockData = generateMockData();
+let currentData = mockData;
+let sessionSortKey = 'cost';
+let sessionSortDir = 'desc';
+
+// Provider colors
+const providerColors = {
+  anthropic: { primary: '#818cf8', secondary: '#6366f1', bg: 'rgba(129,140,248,0.12)', label: 'Anthropic' },
+  openai: { primary: '#34d399', secondary: '#10b981', bg: 'rgba(52,211,153,0.12)', label: 'OpenAI' },
+  moonshot: { primary: '#fbbf24', secondary: '#f59e0b', bg: 'rgba(251,191,36,0.12)', label: 'Moonshot' },
+  ollama: { primary: '#f87171', secondary: '#ef4444', bg: 'rgba(248,113,113,0.12)', label: 'Ollama' },
+  openclaw: { primary: '#a78bfa', secondary: '#8b5cf6', bg: 'rgba(167,139,250,0.12)', label: 'OpenClaw' },
+};
+
+const modelColors = {
+  'claude-opus-4-6': '#818cf8',
+  'claude-haiku-4-5': '#a78bfa',
+  'gpt-5.2': '#34d399',
+  'kimi-k2.5': '#fbbf24',
+  'qwen2.5-coder': '#f87171',
+};
+
+// ============================================
+// FORMATTING HELPERS
+// ============================================
+function formatCost(val) {
+  if (val >= 1) return '$' + val.toFixed(2);
+  if (val >= 0.01) return '$' + val.toFixed(3);
+  if (val > 0) return '$' + val.toFixed(4);
+  return '$0.00';
+}
+
+function formatTokens(val) {
+  if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+  if (val >= 1000) return (val / 1000).toFixed(1) + 'k';
+  return val.toString();
+}
+
+function formatChange(pct) {
+  const sign = pct >= 0 ? '+' : '';
+  return sign + pct.toFixed(1) + '%';
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatDateShort(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatTimestamp(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + 
+         d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ============================================
+// SVG CHART RENDERERS
+// ============================================
+
+function renderDailyChart(containerId, data, variant) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  const width = container.clientWidth;
+  const height = container.clientHeight || 240;
+  const padding = { top: 20, right: 20, bottom: 36, left: 60 };
+  const chartW = width - padding.left - padding.right;
+  const chartH = height - padding.top - padding.bottom;
+  
+  const daily = data.dailyData;
+  const maxCost = Math.max(...daily.map(d => d.cost), 0.01);
+  
+  // Color schemes per variant
+  const schemes = {
+    1: { line: '#818cf8', area: 'rgba(129,140,248,0.15)', grid: '#333842', text: '#64748b', dot: '#a78bfa', areaGrad: ['rgba(129,140,248,0.25)', 'rgba(129,140,248,0.02)'], tooltip: { bg: '#2a2f38', border: '#444', text: '#e2e8f0' } },
+    2: { line: '#c2703e', area: 'rgba(194,112,62,0.1)', grid: '#e8ddd0', text: '#7a6651', dot: '#a0522d', areaGrad: ['rgba(194,112,62,0.2)', 'rgba(194,112,62,0.01)'], tooltip: { bg: '#fff', border: '#e8ddd0', text: '#3d2e1f' } },
+    3: { line: '#0ea5e9', area: 'rgba(14,165,233,0.08)', grid: '#e2e8f0', text: '#94a3b8', dot: '#0284c7', areaGrad: ['rgba(14,165,233,0.15)', 'rgba(14,165,233,0.01)'], tooltip: { bg: '#fff', border: '#e2e8f0', text: '#0f172a' } },
+    4: { line: '#2d2117', area: 'rgba(45,33,23,0.06)', grid: '#d4cabb', text: '#6b6054', dot: '#5a4636', areaGrad: ['rgba(45,33,23,0.12)', 'rgba(45,33,23,0.01)'], tooltip: { bg: '#faf6ef', border: '#d4cabb', text: '#1a1a1a' } },
+    5: { line: '#a78bfa', area: 'rgba(167,139,250,0.12)', grid: 'rgba(255,255,255,0.06)', text: 'rgba(148,163,184,0.8)', dot: '#67e8f9', areaGrad: ['rgba(167,139,250,0.2)', 'rgba(103,232,249,0.02)'], tooltip: { bg: 'rgba(30,30,60,0.9)', border: 'rgba(167,139,250,0.3)', text: '#f1f5f9' } },
+  };
+  const s = schemes[variant];
+  
+  // Build points
+  const points = daily.map((d, i) => ({
+    x: padding.left + (i / (daily.length - 1)) * chartW,
+    y: padding.top + chartH - (d.cost / maxCost) * chartH,
+    data: d
+  }));
+  
+  // Create path
+  let linePath = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const cp1x = points[i-1].x + (points[i].x - points[i-1].x) * 0.4;
+    const cp1y = points[i-1].y;
+    const cp2x = points[i].x - (points[i].x - points[i-1].x) * 0.4;
+    const cp2y = points[i].y;
+    linePath += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${points[i].x} ${points[i].y}`;
+  }
+  
+  // Area path
+  const areaPath = linePath + ` L ${points[points.length-1].x} ${padding.top + chartH} L ${points[0].x} ${padding.top + chartH} Z`;
+  
+  // Grid lines
+  const gridLines = 4;
+  let gridSvg = '';
+  for (let i = 0; i <= gridLines; i++) {
+    const y = padding.top + (i / gridLines) * chartH;
+    const val = maxCost * (1 - i / gridLines);
+    gridSvg += `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" stroke="${s.grid}" stroke-width="0.5" stroke-dasharray="${variant === 4 ? '4,4' : 'none'}"/>`;
+    gridSvg += `<text x="${padding.left - 8}" y="${y + 4}" text-anchor="end" fill="${s.text}" font-size="11" font-family="${variant === 3 ? "'JetBrains Mono',monospace" : 'inherit'}">${formatCost(val)}</text>`;
+  }
+  
+  // X-axis labels
+  let xLabels = '';
+  const labelEvery = daily.length > 10 ? 2 : 1;
+  daily.forEach((d, i) => {
+    if (i % labelEvery === 0) {
+      const x = padding.left + (i / (daily.length - 1)) * chartW;
+      xLabels += `<text x="${x}" y="${height - 8}" text-anchor="middle" fill="${s.text}" font-size="10" font-family="${variant === 3 ? "'JetBrains Mono',monospace" : 'inherit'}">${formatDateShort(d.date)}</text>`;
+    }
+  });
+  
+  // Dots
+  let dots = '';
+  points.forEach((p, i) => {
+    dots += `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${s.dot}" opacity="0" class="chart-dot" data-index="${i}" style="transition:opacity 0.15s,r 0.15s;cursor:pointer;">
+      <animate attributeName="opacity" from="0" to="0.8" dur="0.3s" begin="${0.5 + i * 0.05}s" fill="freeze"/>
+    </circle>`;
+  });
+  
+  const gradId = `grad-${variant}`;
+  
+  container.innerHTML = `
+    <svg width="${width}" height="${height}" style="display:block;">
+      <defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${s.areaGrad[0]}"/>
+          <stop offset="100%" stop-color="${s.areaGrad[1]}"/>
+        </linearGradient>
+      </defs>
+      ${gridSvg}
+      <path d="${areaPath}" fill="url(#${gradId})" class="chart-area-animated"/>
+      <path d="${linePath}" fill="none" stroke="${s.line}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="chart-line-animated"/>
+      ${dots}
+      ${xLabels}
+    </svg>
+    <div class="chart-tooltip" id="tooltip-${variant}" style="background:${s.tooltip.bg}; border:1px solid ${s.tooltip.border}; color:${s.tooltip.text}; padding:8px 12px; border-radius:8px; font-size:12px; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+  `;
+  
+  // Tooltip interactions
+  const svg = container.querySelector('svg');
+  const tooltip = container.querySelector('.chart-tooltip');
+  
+  svg.querySelectorAll('.chart-dot').forEach(dot => {
+    dot.addEventListener('mouseenter', (e) => {
+      const idx = parseInt(dot.getAttribute('data-index'));
+      const d = daily[idx];
+      dot.setAttribute('r', '6');
+      dot.style.opacity = '1';
+      tooltip.innerHTML = `<div style="font-weight:600;">${formatDate(d.date)}</div><div>Cost: ${formatCost(d.cost)}</div><div>Tokens: ${formatTokens(d.tokens)}</div><div>Sessions: ${d.sessions}</div>`;
+      tooltip.classList.add('visible');
+    });
+    dot.addEventListener('mousemove', (e) => {
+      const rect = container.getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
+      tooltip.style.top = (e.clientY - rect.top - 60) + 'px';
+    });
+    dot.addEventListener('mouseleave', () => {
+      dot.setAttribute('r', '4');
+      dot.style.opacity = '0.8';
+      tooltip.classList.remove('visible');
+    });
+  });
+}
+
+function renderModelChart(containerId, data, variant) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  const models = data.modelStats;
+  const maxTokens = Math.max(...models.map(m => m.tokens), 1);
+  const totalCost = models.reduce((a, m) => a + m.cost, 0);
+  
+  if (variant === 1 || variant === 5) {
+    // Horizontal bar chart
+    let html = '';
+    models.forEach((m, i) => {
+      const pct = (m.tokens / maxTokens * 100);
+      const color = modelColors[m.model] || '#94a3b8';
+      const costPct = totalCost > 0 ? (m.cost / totalCost * 100).toFixed(1) : '0.0';
+      const textColor = variant === 1 ? 'var(--v1-text)' : 'var(--v5-text)';
+      const dimColor = variant === 1 ? 'var(--v1-text-muted)' : 'var(--v5-text-dim)';
+      const barBg = variant === 1 ? 'var(--v1-surface2)' : 'rgba(255,255,255,0.05)';
+      
+      html += `
+        <div style="margin-bottom:16px;" class="animate-slide-right stagger-${i+1}">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:10px; height:10px; border-radius:3px; background:${color};"></div>
+              <span style="font-size:13px; font-weight:500; color:${textColor};">${m.model}</span>
+            </div>
+            <span style="font-size:12px; color:${dimColor};">${formatCost(m.cost)} (${costPct}%)</span>
+          </div>
+          <div style="height:8px; background:${barBg}; border-radius:4px; overflow:hidden;">
+            <div style="height:100%; width:${pct}%; background:${color}; border-radius:4px; transition:width 0.8s ease;" class="animate-fade-in stagger-${i+2}"></div>
+          </div>
+          <div style="font-size:11px; color:${dimColor}; margin-top:4px;">${formatTokens(m.tokens)} tokens · ${m.sessions} sessions</div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+    
+  } else if (variant === 2 || variant === 4) {
+    // Donut chart
+    const size = 180;
+    const cx = size / 2, cy = size / 2;
+    const outerR = size / 2 - 10;
+    const innerR = outerR * 0.6;
+    
+    let paths = '';
+    let startAngle = -Math.PI / 2;
+    const totalTokensAll = models.reduce((a, m) => a + m.tokens, 0);
+    
+    models.forEach((m, i) => {
+      const fraction = m.tokens / totalTokensAll;
+      const angle = fraction * Math.PI * 2;
+      const endAngle = startAngle + angle;
+      
+      const x1 = cx + outerR * Math.cos(startAngle);
+      const y1 = cy + outerR * Math.sin(startAngle);
+      const x2 = cx + outerR * Math.cos(endAngle);
+      const y2 = cy + outerR * Math.sin(endAngle);
+      const x3 = cx + innerR * Math.cos(endAngle);
+      const y3 = cy + innerR * Math.sin(endAngle);
+      const x4 = cx + innerR * Math.cos(startAngle);
+      const y4 = cy + innerR * Math.sin(startAngle);
+      
+      const largeArc = angle > Math.PI ? 1 : 0;
+      const color = modelColors[m.model] || '#94a3b8';
+      
+      paths += `<path d="M ${x1} ${y1} A ${outerR} ${outerR} 0 ${largeArc} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerR} ${innerR} 0 ${largeArc} 0 ${x4} ${y4} Z" fill="${color}" opacity="0.85" style="transition:opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.85'"/>`;
+      
+      startAngle = endAngle;
+    });
+    
+    const textColor = variant === 2 ? 'var(--v2-text)' : 'var(--v4-text)';
+    const dimColor = variant === 2 ? 'var(--v2-text-dim)' : 'var(--v4-text-dim)';
+    
+    let legend = '';
+    models.forEach(m => {
+      const color = modelColors[m.model] || '#94a3b8';
+      const pct = totalTokensAll > 0 ? (m.tokens / totalTokensAll * 100).toFixed(1) : '0.0';
+      legend += `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+        <div style="width:10px; height:10px; border-radius:${variant === 4 ? '1px' : '3px'}; background:${color}; flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div style="font-size:13px; color:${textColor};">${m.model}</div>
+          <div style="font-size:11px; color:${dimColor};">${formatTokens(m.tokens)} · ${formatCost(m.cost)} · ${pct}%</div>
+        </div>
+      </div>`;
+    });
+    
+    container.innerHTML = `
+      <div style="display:flex; align-items:center; gap:32px;">
+        <svg width="${size}" height="${size}" style="flex-shrink:0;">
+          ${paths}
+          <text x="${cx}" y="${cy - 6}" text-anchor="middle" fill="${textColor}" font-size="16" font-weight="600">${formatCost(totalCost)}</text>
+          <text x="${cx}" y="${cy + 12}" text-anchor="middle" fill="${dimColor}" font-size="11">total</text>
+        </svg>
+        <div>${legend}</div>
+      </div>
+    `;
+    
+  } else if (variant === 3) {
+    // Minimal stacked bars
+    const totalTokensAll = models.reduce((a, m) => a + m.tokens, 0);
+    let html = `<div style="display:flex; height:8px; border-radius:2px; overflow:hidden; margin-bottom:16px;">`;
+    models.forEach(m => {
+      const pct = (m.tokens / totalTokensAll * 100);
+      const color = modelColors[m.model] || '#94a3b8';
+      html += `<div style="width:${pct}%; background:${color}; transition:width 0.8s ease;"></div>`;
+    });
+    html += `</div>`;
+    
+    models.forEach(m => {
+      const pct = totalTokensAll > 0 ? (m.tokens / totalTokensAll * 100).toFixed(1) : '0.0';
+      const color = modelColors[m.model] || '#94a3b8';
+      html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--v3-border);">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="width:8px; height:8px; border-radius:1px; background:${color};"></div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--v3-text);">${m.model}</span>
+        </div>
+        <div style="display:flex; gap:16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--v3-text-dim);">
+          <span>${formatTokens(m.tokens)}</span>
+          <span>${formatCost(m.cost)}</span>
+          <span>${pct}%</span>
+        </div>
+      </div>`;
+    });
+    
+    container.innerHTML = html;
+  }
+}
+
+// ============================================
+// RENDER SUMMARY CARDS
+// ============================================
+
+function renderSummaryCards(containerId, data, variant) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  const wow = data.weekOverWeek;
+  
+  const cards = [
+    { label: 'Total Tokens', value: formatTokens(data.totalTokens), change: wow.tokenChange, icon: 'bar-chart-2' },
+    { label: 'Total Cost', value: formatCost(data.totalCost), change: wow.costChange, icon: 'dollar-sign' },
+    { label: 'Sessions', value: data.totalSessions.toString(), change: wow.sessionChange, icon: 'layers' },
+    { label: 'Active Models', value: data.activeModels.length.toString(), change: null, icon: 'cpu' },
+  ];
+  
+  if (variant === 1) {
+    container.innerHTML = cards.map((c, i) => {
+      const changeHtml = c.change !== null ? 
+        `<div style="display:flex; align-items:center; gap:4px; margin-top:8px; font-size:12px; color:${c.change >= 0 ? '#fbbf24' : 'var(--v1-success)'};">
+          <span>${formatChange(c.change)}</span>
+          <span style="color:var(--v1-text-muted);">vs last week</span>
+        </div>` : '';
+      return `<div class="card animate-fade-up stagger-${i+1}">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+          <span style="font-size:12px; font-weight:500; color:var(--v1-text-muted); text-transform:uppercase; letter-spacing:0.5px;">${c.label}</span>
+          <i data-lucide="${c.icon}" style="width:16px; height:16px; color:var(--v1-accent); opacity:0.7;"></i>
+        </div>
+        <div style="font-size:28px; font-weight:700; color:var(--v1-text); letter-spacing:-0.5px;">${c.value}</div>
+        ${changeHtml}
+      </div>`;
+    }).join('');
+  } else if (variant === 2) {
+    container.innerHTML = cards.map((c, i) => {
+      const changeHtml = c.change !== null ? 
+        `<div style="font-size:13px; color:${c.change >= 0 ? '#b45309' : '#047857'}; margin-top:8px; font-style:italic;">
+          ${formatChange(c.change)} from prior week
+        </div>` : '';
+      return `<div class="card animate-fade-up stagger-${i+1}">
+        <p style="font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:1.5px; color:var(--v2-accent); margin:0 0 12px 0;">${c.label}</p>
+        <div style="font-family:'Newsreader',serif; font-size:36px; font-weight:400; color:var(--v2-text); letter-spacing:-1px;">${c.value}</div>
+        ${changeHtml}
+      </div>`;
+    }).join('');
+  } else if (variant === 3) {
+    container.innerHTML = cards.map((c, i) => {
+      const changeHtml = c.change !== null ? 
+        `<div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:${c.change >= 0 ? '#f59e0b' : '#10b981'}; margin-top:6px;">
+          ${formatChange(c.change)}
+        </div>` : '';
+      return `<div style="background:var(--v3-bg); padding:20px 24px;" class="animate-fade-up stagger-${i+1}">
+        <div style="font-size:10px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--v3-text-dim); margin-bottom:8px;">${c.label}</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:400; color:var(--v3-text); letter-spacing:-1px;">${c.value}</div>
+        ${changeHtml}
+      </div>`;
+    }).join('');
+  } else if (variant === 4) {
+    container.innerHTML = cards.map((c, i) => {
+      const changeHtml = c.change !== null ? 
+        `<div style="font-size:12px; color:${c.change >= 0 ? '#92400e' : '#065f46'}; margin-top:8px; font-style:italic;">
+          ${formatChange(c.change)} wk/wk
+        </div>` : '';
+      return `<div class="card animate-fade-up stagger-${i+1}" style="text-align:center;">
+        <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--v4-text-dim); margin-bottom:12px;">${c.label}</div>
+        <div style="font-family:'Playfair Display',serif; font-size:32px; font-weight:400; color:var(--v4-text);">${c.value}</div>
+        ${changeHtml}
+      </div>`;
+    }).join('');
+  } else if (variant === 5) {
+    container.innerHTML = cards.map((c, i) => {
+      const changeHtml = c.change !== null ? 
+        `<div style="display:flex; align-items:center; gap:4px; margin-top:8px; font-size:12px;">
+          <span style="color:${c.change >= 0 ? '#fbbf24' : '#67e8f9'};">${formatChange(c.change)}</span>
+          <span style="color:var(--v5-text-dim); font-size:11px;">vs last wk</span>
+        </div>` : '';
+      return `<div class="card animate-fade-up stagger-${i+1}">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+          <span style="font-size:12px; font-weight:500; color:var(--v5-text-dim); text-transform:uppercase; letter-spacing:0.5px;">${c.label}</span>
+          <i data-lucide="${c.icon}" style="width:16px; height:16px; color:var(--v5-accent); opacity:0.6;"></i>
+        </div>
+        <div style="font-size:28px; font-weight:800; background:linear-gradient(135deg, var(--v5-text), var(--v5-accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">${c.value}</div>
+        ${changeHtml}
+      </div>`;
+    }).join('');
+  }
+  
+  // Refresh lucide icons
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+}
+
+// ============================================
+// RENDER PROVIDERS
+// ============================================
+
+function renderProviders(containerId, data, variant) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  const providers = data.providerStats;
+  
+  if (variant === 1 || variant === 5) {
+    const bgColor = variant === 1 ? 'var(--v1-surface2)' : 'rgba(255,255,255,0.04)';
+    const textColor = variant === 1 ? 'var(--v1-text)' : 'var(--v5-text)';
+    const dimColor = variant === 1 ? 'var(--v1-text-muted)' : 'var(--v5-text-dim)';
+    const borderColor = variant === 1 ? 'var(--v1-border)' : 'var(--v5-border)';
+    const radius = variant === 1 ? '12px' : '16px';
+    
+    container.innerHTML = providers.map(p => {
+      const pc = providerColors[p.provider] || providerColors.openclaw;
+      return `<div style="background:${bgColor}; border:1px solid ${borderColor}; border-radius:${radius}; padding:16px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <div style="width:8px; height:8px; border-radius:4px; background:${pc.primary};"></div>
+          <span style="font-size:14px; font-weight:600; color:${textColor}; text-transform:capitalize;">${pc.label}</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div>
+            <div style="font-size:11px; color:${dimColor};">Cost</div>
+            <div style="font-size:16px; font-weight:600; color:${textColor};">${formatCost(p.cost)}</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:${dimColor};">Tokens</div>
+            <div style="font-size:16px; font-weight:600; color:${textColor};">${formatTokens(p.tokens)}</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:${dimColor};">Sessions</div>
+            <div style="font-size:14px; font-weight:500; color:${textColor};">${p.sessions}</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:${dimColor};">Models</div>
+            <div style="font-size:14px; font-weight:500; color:${textColor};">${p.models.length}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } else if (variant === 2) {
+    container.innerHTML = providers.map(p => {
+      const pc = providerColors[p.provider] || providerColors.openclaw;
+      return `<div style="padding:20px 0; border-bottom:1px solid var(--v2-border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:12px; height:12px; border-radius:3px; background:${pc.primary};"></div>
+            <span style="font-family:'Newsreader',serif; font-size:18px; color:var(--v2-text); text-transform:capitalize;">${pc.label}</span>
+          </div>
+          <span style="font-family:'Newsreader',serif; font-size:20px; color:var(--v2-text);">${formatCost(p.cost)}</span>
+        </div>
+        <div style="font-size:13px; color:var(--v2-text-dim);">${formatTokens(p.tokens)} tokens · ${p.sessions} sessions · ${p.models.join(', ')}</div>
+      </div>`;
+    }).join('');
+  } else if (variant === 3) {
+    container.innerHTML = providers.map(p => {
+      const pc = providerColors[p.provider] || providerColors.openclaw;
+      return `<div style="background:var(--v3-bg); padding:16px 20px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <div style="width:6px; height:6px; border-radius:1px; background:${pc.primary};"></div>
+          <span style="font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--v3-text-dim);">${pc.label}</span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:20px; color:var(--v3-text); margin-bottom:4px;">${formatCost(p.cost)}</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--v3-text-dim);">${formatTokens(p.tokens)} · ${p.sessions}s · ${p.models.length}m</div>
+      </div>`;
+    }).join('');
+  } else if (variant === 4) {
+    container.innerHTML = providers.map(p => {
+      const pc = providerColors[p.provider] || providerColors.openclaw;
+      return `<div style="padding:16px 0; border-bottom:1px dashed var(--v4-border);">
+        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="color:${pc.primary}; font-size:16px;">●</span>
+            <span style="font-family:'Playfair Display',serif; font-size:17px; color:var(--v4-text); text-transform:capitalize;">${pc.label}</span>
+          </div>
+          <span style="font-size:18px; color:var(--v4-text);">${formatCost(p.cost)}</span>
+        </div>
+        <div style="font-size:13px; color:var(--v4-text-dim); margin-top:4px; font-style:italic;">${formatTokens(p.tokens)} tokens across ${p.sessions} sessions</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ============================================
+// RENDER SESSIONS
+// ============================================
+
+function renderSessions(containerId, data, variant) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  let sessions = [...data.sessions];
+  
+  // Sort
+  if (sessionSortKey === 'cost') sessions.sort((a, b) => sessionSortDir === 'desc' ? b.usage.cost.total - a.usage.cost.total : a.usage.cost.total - b.usage.cost.total);
+  else if (sessionSortKey === 'tokens') sessions.sort((a, b) => sessionSortDir === 'desc' ? b.usage.totalTokens - a.usage.totalTokens : a.usage.totalTokens - b.usage.totalTokens);
+  else if (sessionSortKey === 'date') sessions.sort((a, b) => sessionSortDir === 'desc' ? new Date(b.timestamp) - new Date(a.timestamp) : new Date(a.timestamp) - new Date(b.timestamp));
+  
+  if (variant === 1) {
+    container.innerHTML = sessions.map((s, i) => {
+      const pc = providerColors[s.provider] || providerColors.openclaw;
+      const displayName = s.label || s.shortId;
+      return `<div class="session-row" data-id="${s.id}" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--v1-border); cursor:pointer; transition:background 0.15s;" onmouseenter="this.style.background='var(--v1-surface2)'" onmouseleave="this.style.background='transparent'" onclick="toggleSessionDetail(this)">
+        <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+          <div style="width:8px; height:8px; border-radius:4px; background:${pc.primary}; flex-shrink:0;"></div>
+          <div style="min-width:0;">
+            <div style="font-size:13px; font-weight:500; color:var(--v1-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${displayName}</div>
+            <div style="font-size:11px; color:var(--v1-text-muted);">${formatTimestamp(s.timestamp)} · ${s.model}</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:24px; flex-shrink:0;">
+          <span style="font-size:12px; color:var(--v1-text-dim);">${formatTokens(s.usage.totalTokens)}</span>
+          <span style="font-size:13px; font-weight:600; color:var(--v1-accent); min-width:60px; text-align:right;">${formatCost(s.usage.cost.total)}</span>
+        </div>
+      </div>
+      <div class="session-details" style="padding:0 16px; background:var(--v1-surface2); border-bottom:1px solid var(--v1-border);">
+        <div style="padding:12px 0; display:grid; grid-template-columns:repeat(4,1fr); gap:12px; font-size:12px;">
+          <div><span style="color:var(--v1-text-muted);">Input:</span> <span style="color:var(--v1-text);">${formatTokens(s.usage.input)}</span></div>
+          <div><span style="color:var(--v1-text-muted);">Output:</span> <span style="color:var(--v1-text);">${formatTokens(s.usage.output)}</span></div>
+          <div><span style="color:var(--v1-text-muted);">Cache Read:</span> <span style="color:var(--v1-text);">${formatTokens(s.usage.cacheRead)}</span></div>
+          <div><span style="color:var(--v1-text-muted);">Cache Write:</span> <span style="color:var(--v1-text);">${formatTokens(s.usage.cacheWrite)}</span></div>
+          <div><span style="color:var(--v1-text-muted);">Provider:</span> <span style="color:var(--v1-text); text-transform:capitalize;">${s.provider}</span></div>
+          <div><span style="color:var(--v1-text-muted);">Session:</span> <span style="color:var(--v1-text);">${s.shortId}</span></div>
+          <div><span style="color:var(--v1-text-muted);">Input Cost:</span> <span style="color:var(--v1-text);">${formatCost(s.usage.cost.input)}</span></div>
+          <div><span style="color:var(--v1-text-muted);">Output Cost:</span> <span style="color:var(--v1-text);">${formatCost(s.usage.cost.output)}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  } else if (variant === 2) {
+    container.innerHTML = sessions.map((s, i) => {
+      const pc = providerColors[s.provider] || providerColors.openclaw;
+      const displayName = s.label || s.shortId;
+      return `<div class="session-row" style="padding:16px 0; border-bottom:1px solid var(--v2-border); cursor:pointer; transition:background 0.15s;" onclick="toggleSessionDetail(this)">
+        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+          <div>
+            <span style="font-family:'Newsreader',serif; font-size:16px; color:var(--v2-text);">${displayName}</span>
+            <span style="font-size:12px; color:var(--v2-text-dim); margin-left:12px;">${s.model}</span>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-family:'Newsreader',serif; font-size:18px; color:var(--v2-accent);">${formatCost(s.usage.cost.total)}</span>
+          </div>
+        </div>
+        <div style="font-size:12px; color:var(--v2-text-dim); margin-top:4px; font-style:italic;">${formatTimestamp(s.timestamp)} · ${formatTokens(s.usage.totalTokens)} tokens</div>
+      </div>
+      <div class="session-details" style="background:#faf5ed; border-bottom:1px solid var(--v2-border);">
+        <div style="padding:12px 16px; display:grid; grid-template-columns:repeat(4,1fr); gap:12px; font-size:12px;">
+          <div><span style="color:var(--v2-text-dim);">Input:</span> <span style="color:var(--v2-text);">${formatTokens(s.usage.input)}</span></div>
+          <div><span style="color:var(--v2-text-dim);">Output:</span> <span style="color:var(--v2-text);">${formatTokens(s.usage.output)}</span></div>
+          <div><span style="color:var(--v2-text-dim);">Cache Read:</span> <span style="color:var(--v2-text);">${formatTokens(s.usage.cacheRead)}</span></div>
+          <div><span style="color:var(--v2-text-dim);">Cache Write:</span> <span style="color:var(--v2-text);">${formatTokens(s.usage.cacheWrite)}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  } else if (variant === 3) {
+    container.innerHTML = sessions.map((s, i) => {
+      const pc = providerColors[s.provider] || providerColors.openclaw;
+      const displayName = s.label || s.shortId;
+      return `<div class="session-row" style="display:flex; justify-content:space-between; align-items:center; padding:10px 16px; border-bottom:1px solid var(--v3-border); cursor:pointer; transition:background 0.1s;" onmouseenter="this.style.background='var(--v3-surface)'" onmouseleave="this.style.background='transparent'" onclick="toggleSessionDetail(this)">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:6px; height:6px; border-radius:1px; background:${pc.primary};"></div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--v3-text);">${displayName}</span>
+          <span style="font-size:10px; color:var(--v3-text-dim);">${s.model}</span>
+        </div>
+        <div style="display:flex; gap:20px; font-family:'JetBrains Mono',monospace; font-size:11px;">
+          <span style="color:var(--v3-text-dim);">${formatDate(s.date)}</span>
+          <span style="color:var(--v3-text-dim);">${formatTokens(s.usage.totalTokens)}</span>
+          <span style="color:var(--v3-accent); font-weight:500; min-width:56px; text-align:right;">${formatCost(s.usage.cost.total)}</span>
+        </div>
+      </div>
+      <div class="session-details" style="background:#f8fafc; border-bottom:1px solid var(--v3-border);">
+        <div style="padding:10px 16px; display:flex; gap:24px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--v3-text-dim);">
+          <span>IN:${formatTokens(s.usage.input)}</span>
+          <span>OUT:${formatTokens(s.usage.output)}</span>
+          <span>CR:${formatTokens(s.usage.cacheRead)}</span>
+          <span>CW:${formatTokens(s.usage.cacheWrite)}</span>
+          <span>${s.provider}</span>
+        </div>
+      </div>`;
+    }).join('');
+  } else if (variant === 4) {
+    container.innerHTML = sessions.map((s, i) => {
+      const pc = providerColors[s.provider] || providerColors.openclaw;
+      const displayName = s.label || s.shortId;
+      return `<div class="session-row" style="padding:14px 0; border-bottom:1px dashed var(--v4-border); cursor:pointer;" onclick="toggleSessionDetail(this)">
+        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+          <div>
+            <span style="font-size:15px; color:var(--v4-text);">${displayName}</span>
+            <span style="font-size:12px; color:var(--v4-text-dim); margin-left:8px; font-style:italic;">${s.model}</span>
+          </div>
+          <span style="font-size:16px; color:var(--v4-text);">${formatCost(s.usage.cost.total)}</span>
+        </div>
+        <div style="font-size:12px; color:var(--v4-text-dim); margin-top:2px;">${formatTimestamp(s.timestamp)} — ${formatTokens(s.usage.totalTokens)} tokens</div>
+      </div>
+      <div class="session-details" style="background:rgba(212,202,187,0.15);">
+        <div style="padding:10px 16px; display:grid; grid-template-columns:repeat(4,1fr); gap:8px; font-size:12px;">
+          <div><span style="color:var(--v4-text-dim);">Input:</span> ${formatTokens(s.usage.input)}</div>
+          <div><span style="color:var(--v4-text-dim);">Output:</span> ${formatTokens(s.usage.output)}</div>
+          <div><span style="color:var(--v4-text-dim);">Cache R:</span> ${formatTokens(s.usage.cacheRead)}</div>
+          <div><span style="color:var(--v4-text-dim);">Cache W:</span> ${formatTokens(s.usage.cacheWrite)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else if (variant === 5) {
+    container.innerHTML = sessions.map((s, i) => {
+      const pc = providerColors[s.provider] || providerColors.openclaw;
+      const displayName = s.label || s.shortId;
+      return `<div class="session-row" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--v5-border); cursor:pointer; transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background='transparent'" onclick="toggleSessionDetail(this)">
+        <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+          <div style="width:8px; height:8px; border-radius:4px; background:${pc.primary}; box-shadow:0 0 8px ${pc.primary}40; flex-shrink:0;"></div>
+          <div style="min-width:0;">
+            <div style="font-size:13px; font-weight:600; color:var(--v5-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${displayName}</div>
+            <div style="font-size:11px; color:var(--v5-text-dim);">${formatTimestamp(s.timestamp)} · ${s.model}</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:24px; flex-shrink:0;">
+          <span style="font-size:12px; color:var(--v5-text-dim);">${formatTokens(s.usage.totalTokens)}</span>
+          <span style="font-size:13px; font-weight:700; background:linear-gradient(135deg, var(--v5-accent), var(--v5-accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; min-width:60px; text-align:right;">${formatCost(s.usage.cost.total)}</span>
+        </div>
+      </div>
+      <div class="session-details" style="background:rgba(255,255,255,0.03); border-bottom:1px solid var(--v5-border);">
+        <div style="padding:12px 16px; display:grid; grid-template-columns:repeat(4,1fr); gap:12px; font-size:12px;">
+          <div><span style="color:var(--v5-text-dim);">Input:</span> <span style="color:var(--v5-text);">${formatTokens(s.usage.input)}</span></div>
+          <div><span style="color:var(--v5-text-dim);">Output:</span> <span style="color:var(--v5-text);">${formatTokens(s.usage.output)}</span></div>
+          <div><span style="color:var(--v5-text-dim);">Cache Read:</span> <span style="color:var(--v5-text);">${formatTokens(s.usage.cacheRead)}</span></div>
+          <div><span style="color:var(--v5-text-dim);">Cache Write:</span> <span style="color:var(--v5-text);">${formatTokens(s.usage.cacheWrite)}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function toggleSessionDetail(row) {
+  const details = row.nextElementSibling;
+  if (details && details.classList.contains('session-details')) {
+    details.classList.toggle('expanded');
+  }
+}
+
+// ============================================
+// SORT SESSIONS
+// ============================================
+function sortSessions(variantPrefix, key) {
+  if (sessionSortKey === key) {
+    sessionSortDir = sessionSortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    sessionSortKey = key;
+    sessionSortDir = 'desc';
+  }
+  renderSessions(`${variantPrefix}-sessions`, currentData, currentVariant);
+}
+
+// ============================================
+// RENDER ALL FOR CURRENT VARIANT
+// ============================================
+function renderAll() {
+  const v = currentVariant;
+  const prefix = `v${v}`;
+  
+  renderSummaryCards(`${prefix}-summary`, currentData, v);
+  renderDailyChart(`${prefix}-daily-chart`, currentData, v);
+  renderModelChart(`${prefix}-model-chart`, currentData, v);
+  renderProviders(`${prefix}-providers`, currentData, v);
+  renderSessions(`${prefix}-sessions`, currentData, v);
+  
+  // Update mode badges
+  updateModeBadges();
+}
+
+function updateModeBadges() {
+  for (let i = 1; i <= 5; i++) {
+    const badge = document.getElementById(`v${i}-mode-badge`);
+    if (badge) {
+      const label = badge.querySelector('.mode-label');
+      if (isLiveMode) {
+        badge.classList.remove('demo');
+        badge.classList.add('live');
+        if (label) label.textContent = 'Live Mode';
+      } else {
+        badge.classList.remove('live');
+        badge.classList.add('demo');
+        if (label) label.textContent = 'Demo Mode';
+      }
+    }
+  }
+}
+
+// ============================================
+// VARIANT SWITCHING
+// ============================================
+function switchVariant(num) {
+  if (num < 1 || num > 5) return;
+  currentVariant = num;
+  localStorage.setItem('ut-variant', num);
+  
+  // Update hash
+  window.location.hash = `/${num}`;
+  
+  // Toggle active class
+  document.querySelectorAll('.variant').forEach(v => v.classList.remove('active'));
+  const target = document.getElementById(`variant-${num}`);
+  if (target) target.classList.add('active');
+  
+  // Update nav buttons
+  const navColors = {
+    1: { active: '#818cf8', bg: 'rgba(30,30,40,0.8)' },
+    2: { active: '#c2703e', bg: 'rgba(250,247,242,0.9)' },
+    3: { active: '#0ea5e9', bg: 'rgba(255,255,255,0.9)' },
+    4: { active: '#5a4636', bg: 'rgba(245,240,232,0.9)' },
+    5: { active: '#a78bfa', bg: 'rgba(30,27,75,0.8)' },
+  };
+  
+  const nav = document.getElementById('variant-nav');
+  nav.style.background = navColors[num].bg;
+  
+  nav.querySelectorAll('button').forEach(btn => {
+    const v = parseInt(btn.getAttribute('data-v'));
+    if (v === num) {
+      btn.style.background = navColors[num].active;
+      btn.style.color = '#fff';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.color = num <= 1 || num === 5 ? '#94a3b8' : '#64748b';
+    }
+  });
+  
+  // Update scrollbar colors for dark variants
+  const isDark = num === 1 || num === 5;
+  document.body.style.background = isDark ? (num === 1 ? '#1a1d23' : '#1e1b4b') : 
+                                    num === 2 ? '#faf7f2' : 
+                                    num === 3 ? '#ffffff' : '#f5f0e8';
+  
+  // Re-render
+  renderAll();
+}
+
+// ============================================
+// MODE TOGGLE
+// ============================================
+function toggleMode() {
+  isLiveMode = !isLiveMode;
+  localStorage.setItem('ut-mode', isLiveMode ? 'live' : 'demo');
+  
+  if (isLiveMode) {
+    // Try to fetch from API
+    fetchLiveData();
+  } else {
+    currentData = mockData;
+    renderAll();
+  }
+}
+
+async function fetchLiveData() {
+  try {
+    const apiHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'localhost' : window.location.hostname;
+    const resp = await fetch(`http://${apiHost}:8005/api/usage`, { signal: AbortSignal.timeout(3000) });
+    if (!resp.ok) throw new Error('API returned ' + resp.status);
+    const data = await resp.json();
+    currentData = data;
+    renderAll();
+  } catch (e) {
+    // Show connection message
+    showLiveError();
+  }
+}
+
+function showLiveError() {
+  const v = currentVariant;
+  const prefix = `v${v}`;
+  const summaryEl = document.getElementById(`${prefix}-summary`);
+  if (summaryEl) {
+    const isDark = v === 1 || v === 5;
+    const bg = isDark ? 'rgba(251,191,36,0.1)' : 'rgba(251,191,36,0.08)';
+    const border = isDark ? 'rgba(251,191,36,0.3)' : 'rgba(251,191,36,0.4)';
+    const text = isDark ? '#fbbf24' : '#92400e';
+    
+    summaryEl.innerHTML = `<div style="grid-column:1/-1; background:${bg}; border:1px solid ${border}; border-radius:12px; padding:24px; text-align:center;">
+      <div style="font-size:16px; font-weight:600; color:${text}; margin-bottom:8px;">Connect to Dev Tools API</div>
+      <div style="font-size:13px; color:${isDark ? '#94a3b8' : '#64748b'};">Unable to reach <code style="background:rgba(0,0,0,0.1); padding:2px 6px; border-radius:4px;">http://${apiHost || 'localhost'}:8005/api/usage</code></div>
+      <div style="font-size:12px; color:${isDark ? '#64748b' : '#94a3b8'}; margin-top:8px;">Press <kbd class="shortcut-key">D</kbd> to switch back to demo mode</div>
+    </div>`;
+  }
+}
+
+// ============================================
+// KEYBOARD SHORTCUTS
+// ============================================
+document.addEventListener('keydown', (e) => {
+  // Don't capture if in an input
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  
+  const overlay = document.getElementById('shortcut-overlay');
+  
+  if (e.key === 'Escape') {
+    overlay.classList.remove('visible');
+    return;
+  }
+  
+  if (overlay.classList.contains('visible')) {
+    overlay.classList.remove('visible');
+    return;
+  }
+  
+  if (e.key === '?') {
+    e.preventDefault();
+    overlay.classList.add('visible');
+    return;
+  }
+  
+  if (e.key >= '1' && e.key <= '5') {
+    e.preventDefault();
+    switchVariant(parseInt(e.key));
+    return;
+  }
+  
+  if (e.key === 'd' || e.key === 'D') {
+    e.preventDefault();
+    toggleMode();
+    return;
+  }
+});
+
+// ============================================
+// HASH ROUTING
+// ============================================
+function handleHash() {
+  const hash = window.location.hash;
+  const match = hash.match(/^#\/(\d)$/);
+  if (match) {
+    const num = parseInt(match[1]);
+    if (num >= 1 && num <= 5) {
+      switchVariant(num);
+      return;
+    }
+  }
+  // Use persisted variant or default to 1
+  switchVariant(currentVariant);
+}
+
+window.addEventListener('hashchange', handleHash);
+
+// ============================================
+// WINDOW RESIZE HANDLER
+// ============================================
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    renderDailyChart(`v${currentVariant}-daily-chart`, currentData, currentVariant);
+  }, 200);
+});
+
+// ============================================
+// INITIALIZATION
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+  handleHash();
+  
+  // Auto-fetch live data if persisted mode is live
+  if (isLiveMode) {
+    fetchLiveData();
+  }
+  
+  // Initialize Lucide icons
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+});
+</script>
+</body>
+</html>
