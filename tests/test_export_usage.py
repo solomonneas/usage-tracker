@@ -100,3 +100,26 @@ def test_walk_agents_dir(tmp_path):
     assert len(records) == 2
     agents = {r["agent"] for r in records}
     assert agents == {"main", "coder"}
+
+
+def test_filter_since_drops_old_records():
+    import export_usage as eu
+    records = [
+        {"ts": "2026-04-27T10:00:00.000Z", "agent": "main"},
+        {"ts": "2026-04-20T10:00:00.000Z", "agent": "main"},
+        {"ts": "2026-04-01T10:00:00.000Z", "agent": "main"},
+    ]
+    # Cutoff: 2026-04-21 -> only the 2026-04-27 record survives
+    out = eu.filter_since(records, "2026-04-21T00:00:00.000Z")
+    assert len(out) == 1
+    assert out[0]["ts"] == "2026-04-27T10:00:00.000Z"
+
+
+def test_parse_since_relative():
+    import export_usage as eu
+    from datetime import datetime, timezone
+    now = datetime(2026, 4, 28, 12, 0, 0, tzinfo=timezone.utc)
+    cutoff = eu.parse_since("7d", now=now)
+    assert cutoff == "2026-04-21T12:00:00+00:00"
+    cutoff = eu.parse_since("24h", now=now)
+    assert cutoff == "2026-04-27T12:00:00+00:00"
