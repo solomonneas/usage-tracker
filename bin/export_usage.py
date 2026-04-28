@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Export OpenClaw session usage from trajectory jsonls into a flat usage.json."""
 
+import argparse
 import json
 import re
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -130,4 +132,55 @@ def filter_since(records, cutoff_iso):
 
 
 def main(argv=None):
-    raise NotImplementedError
+    parser = argparse.ArgumentParser(
+        description="Export OpenClaw session usage to a flat usage.json"
+    )
+    parser.add_argument(
+        "--agents-dir",
+        default=str(Path.home() / ".openclaw" / "agents"),
+        help="Path to OpenClaw agents directory (default: ~/.openclaw/agents)",
+    )
+    parser.add_argument(
+        "--out",
+        default=str(Path(__file__).resolve().parent.parent / "data" / "usage.json"),
+        help="Output path (default: ../data/usage.json)",
+    )
+    parser.add_argument(
+        "--since",
+        default=None,
+        help="Only include events newer than N. Accepts '7d', '24h', '30m', or an ISO timestamp.",
+    )
+    args = parser.parse_args(argv)
+
+    records = walk_agents_dir(args.agents_dir)
+    if args.since:
+        cutoff = parse_since(args.since)
+        records = filter_since(records, cutoff)
+
+    # Sort newest-first
+    records.sort(key=lambda r: r.get("ts") or "", reverse=True)
+
+    payload = {
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "agentsDir": args.agents_dir,
+        "since": args.since,
+        "records": records,
+    }
+
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(payload, indent=2))
+
+    # Summary to stderr
+    cost_known = sum(1 for r in records if r["costUsd"] is not None)
+    cost_missing = len(records) - cost_known
+    print(
+        f"exported {len(records)} records to {out_path} "
+        f"({cost_known} with cost, {cost_missing} missing)",
+        file=sys.stderr,
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
