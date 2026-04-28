@@ -2,6 +2,8 @@
 """Export OpenClaw session usage from trajectory jsonls into a flat usage.json."""
 
 import json
+import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 OAUTH_PROVIDERS = {"openai-codex", "claude-cli", "acpx"}
@@ -100,6 +102,31 @@ def walk_agents_dir(agents_dir):
                 if rec is not None:
                     records.append(rec)
     return records
+
+
+def parse_since(spec, now=None):
+    """Turn '7d' / '24h' / '30m' into an ISO cutoff timestamp.
+
+    Absolute ISO strings pass through unchanged.
+    """
+    if now is None:
+        now = datetime.now(timezone.utc)
+    m = re.fullmatch(r"(\d+)([dhm])", spec.strip())
+    if not m:
+        # Assume already an ISO string
+        return spec
+    n, unit = int(m.group(1)), m.group(2)
+    delta = {
+        "d": timedelta(days=n),
+        "h": timedelta(hours=n),
+        "m": timedelta(minutes=n),
+    }[unit]
+    return (now - delta).isoformat()
+
+
+def filter_since(records, cutoff_iso):
+    """Drop records whose ts is older than cutoff_iso (string compare safe for ISO-8601 UTC)."""
+    return [r for r in records if (r.get("ts") or "") >= cutoff_iso]
 
 
 def main(argv=None):
