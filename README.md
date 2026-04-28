@@ -1,10 +1,20 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white" alt="HTML5" />
-  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License" />
+  <img src="docs/assets/usage-tracker-banner.jpg" alt="Usage Tracker banner">
 </p>
 
-# Usage Tracker
+<h1 align="center">Usage Tracker</h1>
+
+<p align="center">
+  <strong>OpenClaw session cost analytics for API spend, OAuth subscription value, and model usage.</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5">
+  <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3">
+  <img src="https://img.shields.io/badge/OpenClaw-usage_analytics-ef4444?style=for-the-badge" alt="OpenClaw usage analytics">
+  <img src="https://img.shields.io/badge/static_page-no_backend-0f766e?style=for-the-badge" alt="Static page, no backend">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT license">
+</p>
 
 OpenClaw session cost analytics. Single static page plus a tiny Python exporter that reads OpenClaw trajectory jsonls and writes a flat `data/usage.json` the page renders.
 
