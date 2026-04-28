@@ -1281,29 +1281,32 @@ function renderModelChart(containerId, data, variant) {
 function renderSummaryCards(containerId, data, variant) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  
-  const wow = data.weekOverWeek;
-  
+
+  const totalSessions = Object.keys(data.sessionGroups || {}).length;
   const cards = [
-    { label: 'Total Tokens', value: formatTokens(data.totalTokens), change: wow.tokenChange, icon: 'bar-chart-2' },
-    { label: 'Total Cost', value: formatCost(data.totalCost), change: wow.costChange, icon: 'dollar-sign' },
-    { label: 'Sessions', value: data.totalSessions.toString(), change: wow.sessionChange, icon: 'layers' },
-    { label: 'Cache Hit Rate', value: (data.cacheHitRate || 0).toFixed(1) + '%', change: null, icon: 'zap', subtitle: `${formatTokens(data.totalCacheRead || 0)} read · ${formatTokens(data.totalCacheWrite || 0)} write` },
-    { label: 'Active Models', value: data.activeModels.length.toString(), change: null, icon: 'cpu' },
+    { label: 'API Spend', value: formatCost(data.apiCost || 0), change: null, icon: 'credit-card', billingPill: 'API', subtitle: 'real $' },
+    { label: 'OAuth Value', value: formatCost(data.oauthCost || 0), change: null, icon: 'zap', billingPill: 'OAUTH', subtitle: 'equivalent API spend' },
+    { label: 'Total', value: formatCost(data.totalCost || 0), change: data.costChange, icon: 'dollar-sign' },
+    { label: 'Total Tokens', value: formatTokens(data.totalTokens || 0), change: data.tokenChange, icon: 'bar-chart-2' },
+    { label: 'Sessions', value: totalSessions.toString(), change: data.sessionChange, icon: 'layers' },
+    { label: 'Cache Hit Rate', value: (data.cacheHitRate || 0).toFixed(1) + '%', change: null, icon: 'database', subtitle: `${formatTokens(data.totalCacheRead || 0)} read · ${formatTokens(data.totalCacheWrite || 0)} write` },
   ];
-  
+
   if (variant === 1) {
     container.innerHTML = cards.map((c, i) => {
-      const changeHtml = c.change !== null ? 
+      const changeHtml = c.change !== null ?
         `<div style="display:flex; align-items:center; gap:4px; margin-top:8px; font-size:12px; color:${c.change >= 0 ? '#fbbf24' : 'var(--v1-success)'};">
           <span>${formatChange(c.change)}</span>
           <span style="color:var(--v1-text-muted);">vs last week</span>
         </div>` : '';
+      const pillHtml = c.billingPill ?
+        `<span style="display:inline-block; font-size:10px; font-weight:600; letter-spacing:1px; padding:2px 8px; border-radius:8px; background:${c.billingPill === 'API' ? 'rgba(99,102,241,0.15)' : 'rgba(251,191,36,0.15)'}; color:${c.billingPill === 'API' ? 'var(--v1-accent)' : '#fbbf24'}; margin-bottom:8px;">${c.billingPill}</span>` : '';
       return `<div class="card animate-fade-up stagger-${i+1}">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
           <span style="font-size:12px; font-weight:500; color:var(--v1-text-muted); text-transform:uppercase; letter-spacing:0.5px;">${c.label}</span>
           <i data-lucide="${c.icon}" style="width:16px; height:16px; color:var(--v1-accent); opacity:0.7;"></i>
         </div>
+        ${pillHtml}
         <div style="font-size:28px; font-weight:700; color:var(--v1-text); letter-spacing:-0.5px;">${c.value}</div>
         ${c.subtitle ? `<div style="font-size:11px; color:var(--v1-text-muted); margin-top:4px;">${c.subtitle}</div>` : ''}
         ${changeHtml}
@@ -1311,12 +1314,15 @@ function renderSummaryCards(containerId, data, variant) {
     }).join('');
   } else if (variant === 2) {
     container.innerHTML = cards.map((c, i) => {
-      const changeHtml = c.change !== null ? 
+      const changeHtml = c.change !== null ?
         `<div style="font-size:13px; color:${c.change >= 0 ? '#b45309' : '#047857'}; margin-top:8px; font-style:italic;">
           ${formatChange(c.change)} from prior week
         </div>` : '';
+      const pillHtml = c.billingPill ?
+        `<span style="display:inline-block; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; color:${c.billingPill === 'API' ? 'var(--v2-accent)' : '#b45309'}; margin-bottom:6px;">${c.billingPill}</span>` : '';
       return `<div class="card animate-fade-up stagger-${i+1}">
         <p style="font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:1.5px; color:var(--v2-accent); margin:0 0 12px 0;">${c.label}</p>
+        ${pillHtml}
         <div style="font-family:'Newsreader',serif; font-size:36px; font-weight:400; color:var(--v2-text); letter-spacing:-1px;">${c.value}</div>
         ${c.subtitle ? `<div style="font-size:11px; color:var(--v2-text-dim); margin-top:4px;">${c.subtitle}</div>` : ''}
         ${changeHtml}
@@ -1324,12 +1330,15 @@ function renderSummaryCards(containerId, data, variant) {
     }).join('');
   } else if (variant === 3) {
     container.innerHTML = cards.map((c, i) => {
-      const changeHtml = c.change !== null ? 
+      const changeHtml = c.change !== null ?
         `<div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:${c.change >= 0 ? '#f59e0b' : '#10b981'}; margin-top:6px;">
           ${formatChange(c.change)}
         </div>` : '';
+      const pillHtml = c.billingPill ?
+        `<span style="display:inline-block; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; padding:1px 6px; border:1px solid ${c.billingPill === 'API' ? 'var(--v3-accent)' : '#f59e0b'}; color:${c.billingPill === 'API' ? 'var(--v3-accent)' : '#f59e0b'}; margin-bottom:6px;">[${c.billingPill}]</span>` : '';
       return `<div style="background:var(--v3-bg); padding:20px 24px;" class="animate-fade-up stagger-${i+1}">
         <div style="font-size:10px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--v3-text-dim); margin-bottom:8px;">${c.label}</div>
+        ${pillHtml}
         <div style="font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:400; color:var(--v3-text); letter-spacing:-1px;">${c.value}</div>
         ${c.subtitle ? `<div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--v3-text-dim); margin-top:4px;">${c.subtitle}</div>` : ''}
         ${changeHtml}
@@ -1337,12 +1346,15 @@ function renderSummaryCards(containerId, data, variant) {
     }).join('');
   } else if (variant === 4) {
     container.innerHTML = cards.map((c, i) => {
-      const changeHtml = c.change !== null ? 
+      const changeHtml = c.change !== null ?
         `<div style="font-size:12px; color:${c.change >= 0 ? '#92400e' : '#065f46'}; margin-top:8px; font-style:italic;">
           ${formatChange(c.change)} wk/wk
         </div>` : '';
+      const pillHtml = c.billingPill ?
+        `<span style="display:inline-block; font-size:10px; font-style:italic; color:${c.billingPill === 'API' ? 'var(--v4-text-dim)' : '#92400e'}; margin-bottom:6px;">${c.billingPill}</span>` : '';
       return `<div class="card animate-fade-up stagger-${i+1}" style="text-align:center;">
         <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--v4-text-dim); margin-bottom:12px;">${c.label}</div>
+        ${pillHtml}
         <div style="font-family:'Playfair Display',serif; font-size:32px; font-weight:400; color:var(--v4-text);">${c.value}</div>
         ${c.subtitle ? `<div style="font-size:11px; color:var(--v4-text-dim); margin-top:4px;">${c.subtitle}</div>` : ''}
         ${changeHtml}
@@ -1350,16 +1362,19 @@ function renderSummaryCards(containerId, data, variant) {
     }).join('');
   } else if (variant === 5) {
     container.innerHTML = cards.map((c, i) => {
-      const changeHtml = c.change !== null ? 
+      const changeHtml = c.change !== null ?
         `<div style="display:flex; align-items:center; gap:4px; margin-top:8px; font-size:12px;">
           <span style="color:${c.change >= 0 ? '#fbbf24' : '#67e8f9'};">${formatChange(c.change)}</span>
           <span style="color:var(--v5-text-dim); font-size:11px;">vs last wk</span>
         </div>` : '';
+      const pillHtml = c.billingPill ?
+        `<span style="display:inline-block; font-size:10px; font-weight:700; letter-spacing:1px; padding:2px 10px; border-radius:10px; background:${c.billingPill === 'API' ? 'rgba(139,92,246,0.2)' : 'rgba(251,191,36,0.15)'}; color:${c.billingPill === 'API' ? 'var(--v5-accent)' : '#fbbf24'}; box-shadow:0 0 8px ${c.billingPill === 'API' ? 'rgba(139,92,246,0.3)' : 'rgba(251,191,36,0.2)'}; margin-bottom:8px;">${c.billingPill}</span>` : '';
       return `<div class="card animate-fade-up stagger-${i+1}">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
           <span style="font-size:12px; font-weight:500; color:var(--v5-text-dim); text-transform:uppercase; letter-spacing:0.5px;">${c.label}</span>
           <i data-lucide="${c.icon}" style="width:16px; height:16px; color:var(--v5-accent); opacity:0.6;"></i>
         </div>
+        ${pillHtml}
         <div style="font-size:28px; font-weight:800; background:linear-gradient(135deg, var(--v5-text), var(--v5-accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">${c.value}</div>
         ${c.subtitle ? `<div style="font-size:11px; color:var(--v5-text-dim); margin-top:4px;">${c.subtitle}</div>` : ''}
         ${changeHtml}
