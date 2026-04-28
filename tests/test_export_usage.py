@@ -123,3 +123,28 @@ def test_parse_since_relative():
     assert cutoff == "2026-04-21T12:00:00+00:00"
     cutoff = eu.parse_since("24h", now=now)
     assert cutoff == "2026-04-27T12:00:00+00:00"
+
+
+def test_main_writes_usage_json(tmp_path, capsys):
+    import export_usage as eu
+    # Fake agents dir
+    agents = tmp_path / "agents"
+    (agents / "main" / "sessions").mkdir(parents=True)
+    (agents / "main" / "sessions" / "s1.trajectory.jsonl").write_text(
+        (ROOT / "tests" / "fixtures" / "sample-codex.trajectory.jsonl").read_text()
+    )
+    out = tmp_path / "usage.json"
+    rc = eu.main([
+        "--agents-dir", str(agents),
+        "--out", str(out),
+    ])
+    assert rc == 0
+    payload = json.loads(out.read_text())
+    assert "generatedAt" in payload
+    assert "records" in payload
+    assert isinstance(payload["records"], list)
+    assert len(payload["records"]) == 1
+    rec = payload["records"][0]
+    assert rec["agent"] == "main"
+    assert rec["billing"] == "oauth"
+    assert rec["modelId"] == "gpt-5.5"
