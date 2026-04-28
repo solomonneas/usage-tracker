@@ -1929,17 +1929,18 @@ function renderSubscriptionROI(containerId, data, variant) {
 // RENDER ALL FOR CURRENT VARIANT
 // ============================================
 function renderAll() {
+  if (!currentData) return;
   const v = currentVariant;
   const prefix = `v${v}`;
-  
-  renderSummaryCards(`${prefix}-summary`, currentData, v);
-  renderSubscriptionROI(`${prefix}-sub-roi`, currentData, v);
-  renderDailyChart(`${prefix}-daily-chart`, currentData, v);
-  renderModelChart(`${prefix}-model-chart`, currentData, v);
-  renderProviders(`${prefix}-providers`, currentData, v);
-  renderAgents(`${prefix}-agents`, currentData, v);
-  renderSessions(`${prefix}-sessions`, currentData, v);
-  
+  const safe = (label, fn) => { try { fn(); } catch (e) { console.warn('[usage-tracker]', label, 'failed:', e.message); } };
+
+  safe('renderSummaryCards',   () => renderSummaryCards(`${prefix}-summary`, currentData, v));
+  safe('renderSubscriptionROI',() => renderSubscriptionROI(`${prefix}-sub-roi`, currentData, v));
+  safe('renderDailyChart',     () => renderDailyChart(`${prefix}-daily-chart`, currentData, v));
+  safe('renderModelChart',     () => renderModelChart(`${prefix}-model-chart`, currentData, v));
+  safe('renderProviders',      () => renderProviders(`${prefix}-providers`, currentData, v));
+  safe('renderAgents',         () => renderAgents(`${prefix}-agents`, currentData, v));
+  safe('renderSessions',       () => renderSessions(`${prefix}-sessions`, currentData, v));
 }
 
 // ============================================
